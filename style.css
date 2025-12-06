@@ -1,25 +1,86 @@
-#feed-container {
-    height: 100vh;
-    overflow-y: scroll;
-    scroll-snap-type: y mandatory;
+:root{
+  --bg:#071029;
+  --card:#071226;
+  --accent:#7c3aed;
+  --text:#e6eef8;
+  --muted:#94a3b8;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial}
+.topbar{height:56px;display:flex;align-items:center;padding:0 16px;background:linear-gradient(90deg,#021021,#071029);border-bottom:1px solid rgba(255,255,255,0.03)}
+.brand{font-weight:700;color:var(--accent)}
+.feed{
+  height:calc(100vh - 56px);
+  width:100%;
+  overflow-y:auto;
+  scroll-snap-type:y mandatory;
+  -webkit-overflow-scrolling:touch;
+  position:relative;
+  background:transparent;
+}
+/* each card fullscreen */
+.card{
+  height:100%;
+  min-height:calc(100vh - 56px);
+  width:100%;
+  scroll-snap-align:start;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#000;
+  color:var(--text);
 }
 
-.feed-item {
-    position: relative;
-    height: 100vh;
-    scroll-snap-align: start;
+/* iframe fills card */
+.card iframe{
+  width:100%;
+  height:100%;
+  border:0;
+  display:block;
 }
 
-.feed-image {
-    height: 100%;
-    width: 100%;
-    object-fit: cover;
+/* overlay info box (title, actions) */
+.infoBox{
+  position:absolute;
+  left:16px;
+  bottom:28px;
+  background:linear-gradient(180deg, rgba(7,18,38,0.0), rgba(7,18,38,0.6));
+  padding:12px;
+  border-radius:10px;
+  max-width:calc(100% - 32px);
 }
+.title{font-size:20px;font-weight:700;margin:0 0 6px 0}
+.meta{font-size:12px;color:var(--muted)}
 
-.feed-overlay {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    color: white;
-    text-shadow: 0 0 10px black;
+/* action buttons on right */
+.actions{
+  position:absolute;
+  right:12px;
+  bottom:80px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  align-items:center;
 }
+.action-btn{
+  width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--text);border:1px solid rgba(255,255,255,0.03);cursor:pointer;font-weight:700;
+}
+.action-btn.super{background:linear-gradient(90deg,#f59e0b,#ef4444);color:#081018;border:none}
+
+/* small counter badge */
+.badge{font-size:12px;margin-top:6px;color:var(--muted)}
+
+/* hidden helper */
+.hidden{display:none}
+
+/* overlay for iframe fallback */
+.overlay{
+  position:fixed;inset:0;background:rgba(2,6,23,0.85);display:flex;align-items:center;justify-content:center;z-index:60;padding:20px;
+}
+.overlay iframe{width:100%;height:80vh;border-radius:12px;border:0}
+.close{position:absolute;right:28px;top:28px;background:transparent;border:none;color:var(--text);font-size:28px;cursor:pointer}
+
+/* smooth snap behaviour */
+.feed::-webkit-scrollbar{width:8px}
+.feed::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:8px}
