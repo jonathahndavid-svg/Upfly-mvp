@@ -1,13 +1,13 @@
 [
   {
     "id": "game1",
-    "title": "Flappy Bird JS",
+    "title": "SPACE SHOOTER DEMO",
     "cover": "games/game1/cover.png",
     "url": "games/game1/index.html"
   },
   {
     "id": "game2",
-    "title": "Pong Classic",
+    "title": "FLAPPY BIRD DEMO",
     "cover": "games/game2/cover.png",
     "url": "games/game2/index.html"
   }
