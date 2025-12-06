@@ -1,65 +1,113 @@
-// Upfly — Swipe infinite feed (Option C)
-// Loads games from games/games.json and renders fullscreen cards, one per viewport.
-// Batching + IntersectionObserver to load next batch when last visible card enters viewport.
+// app.js - Upfly MVP (Tailwind + vanilla JS)
+// Carga juegos desde ./games/games.json y muestra swipe vertical 1 juego/pantalla
+// Interactions (Up, SuperUp, Comments) guardados en localStorage (MVP)
 
-const FEED = document.getElementById('feed');
-const BATCH_SIZE = 2;         // how many cards to append per batch
-const MAX_LOADED = 6;        // keep at most this many cards in DOM (old ones removed)
-let gamesList = [];
+/* CONFIG */
+const BATCH_SIZE = 2;      // cuántas tarjetas cargar por batch
+const MAX_LOADED = 6;      // max tarjetas en DOM (prune)
+const FEED_ID = 'feed-container';
+const GAMES_JSON = './games/games.json';
+
+const feed = document.getElementById(FEED_ID);
+let games = [];
 let nextIndex = 0;
-let loading = false;
 let observer = null;
+let loading = false;
 
-// fetch JSON list
-async function loadGamesList(){
+// util: escape
+const esc = s => (s ? String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])) : '');
+
+// localStorage helpers
+const key = (prefix, id) => `upfly_${prefix}_${id}`;
+const getCount = (prefix, id) => Number(localStorage.getItem(key(prefix,id)) || 0);
+const incCount = (prefix, id) => {
+  const k = key(prefix,id);
+  const v = Number(localStorage.getItem(k)||0) + 1;
+  localStorage.setItem(k, v);
+  return v;
+};
+
+// fetch list and init
+async function init(){
   try{
-    const res = await fetch('./games/games.json');
+    const res = await fetch(GAMES_JSON);
     if(!res.ok) throw new Error('games.json not found: ' + res.status);
-    gamesList = await res.json();
-    // initial batch
+    games = await res.json();
+    if(!Array.isArray(games) || games.length === 0){
+      feed.innerHTML = `<div class="p-6 text-center text-red-400">No hay juegos en games/games.json</div>`;
+      return;
+    }
     appendBatch();
     setupObserver();
+    // listen for scores sent by games via postMessage
+    window.addEventListener('message', onMessageFromGame);
   }catch(err){
     console.error(err);
-    FEED.innerHTML = '<div style="padding:20px;color:#f88">Error cargando juegos. Revisa games/games.json</div>';
+    feed.innerHTML = `<div class="p-6 text-center text-red-400">Error cargando games.json — revisa consola</div>`;
   }
 }
 
-// create card element for a game
+// create card DOM
 function createCard(game){
   const card = document.createElement('section');
-  card.className = 'card';
+  card.className = 'card w-full flex-shrink-0 snap-start';
   card.dataset.gameId = game.id || game.url || game.title;
 
-  // iframe sandbox to isolate game
+  // iframe
   const iframe = document.createElement('iframe');
+  iframe.className = 'game-frame';
   iframe.src = game.url;
-  iframe.setAttribute('allow','autoplay; fullscreen');
+  iframe.sandbox = 'allow-scripts allow-same-origin';
   iframe.loading = 'lazy';
+  iframe.setAttribute('allow','autoplay; fullscreen');
 
-  // info overlay
+  // info box (bottom-left)
   const info = document.createElement('div');
-  info.className = 'infoBox';
-  info.innerHTML = `<div class="title">${escapeHtml(game.title || 'Untitled')}</div>
-                    <div class="meta">${escapeHtml(game.author || '')}</div>`;
+  info.className = 'info-box absolute left-4 bottom-6 p-3 rounded-md text-left max-w-[70%]';
+  info.innerHTML = `<div class="title text-xl font-semibold">${esc(game.title)}</div>
+                    <div class="meta text-sm text-[#94a3b8]">${esc(game.author || '')}</div>`;
 
-  // actions (Up, SuperUp, Down, Comments)
+  // action buttons box (bottom-right over iframe)
   const actions = document.createElement('div');
-  actions.className = 'actions';
-  const upBtn = makeBtn('⬆', 'up-btn');
-  const upBadge = document.createElement('div'); upBadge.className='badge'; upBadge.textContent = getLocalCount('up', game.id);
-  const superBtn = makeBtn('★', 'super-btn', true);
-  const superBadge = document.createElement('div'); superBadge.className='badge'; superBadge.textContent = getLocalCount('super', game.id);
-  const downBtn = makeBtn('⬇', 'down-btn');
-  const commBtn = makeBtn('💬', 'comm-btn');
+  actions.className = 'absolute right-4 bottom-20 flex flex-col items-center gap-3';
 
-  upBtn.onclick = ()=>{ incrementLocal('up', game.id); upBadge.textContent = getLocalCount('up', game.id); }
-  superBtn.onclick = ()=>{ incrementLocal('super', game.id); superBadge.textContent = getLocalCount('super', game.id); }
-  downBtn.onclick = ()=>{ incrementLocal('down', game.id); alert('Gracias por tu feedback'); }
-  commBtn.onclick = ()=>{ openComments(game.id); }
+  // Up
+  const upBtn = document.createElement('button');
+  upBtn.className = 'action-btn bg-white/5 hover:bg-white/10 text-white rounded-xl w-14 h-14 flex items-center justify-center';
+  upBtn.innerText = '⬆';
+  upBtn.onclick = (e) => { e.stopPropagation(); const v = incCount('up', game.id); upBadge.innerText = v; };
 
-  actions.appendChild(upBtn); actions.appendChild(upBadge);
-  actions.appendChild(superBtn); actions.appendChild(superBadge);
+  const upBadge = document.createElement('div');
+  upBadge.className = 'badge text-xs text-[#94a3b8]';
+  upBadge.innerText = getCount('up', game.id);
+
+  // Super Up
+  const supBtn = document.createElement('button');
+  supBtn.className = 'action-btn bg-gradient-to-br from-yellow-400 to-red-500 text-black rounded-xl w-14 h-14 flex items-center justify-center font-bold';
+  supBtn.innerText = '★';
+  supBtn.onclick = (e) => { e.stopPropagation(); const v = incCount('super', game.id); supBadge.innerText = v; };
+
+  const supBadge = document.createElement('div');
+  supBadge.className = 'badge text-xs text-[#94a3b8]';
+  supBadge.innerText = getCount('super', game.id);
+
+  // Down (no public counter)
+  const downBtn = document.createElement('button');
+  downBtn.className = 'action-btn bg-white/5 hover:bg-white/10 text-white rounded-xl w-14 h-14 flex items-center justify-center';
+  downBtn.innerText = '⬇';
+  downBtn.onclick = (e) => { e.stopPropagation(); incCount('down', game.id); alert('Gracias por tu feedback'); };
+
+  // Comments
+  const commBtn = document.createElement('button');
+  commBtn.className = 'action-btn bg-white/5 hover:bg-white/10 text-white rounded-xl w-14 h-14 flex items-center justify-center';
+  commBtn.innerText = '💬';
+  commBtn.onclick = (e) => { e.stopPropagation(); openComments(game.id); };
+
+  // append elements
+  actions.appendChild(upBtn);
+  actions.appendChild(upBadge);
+  actions.appendChild(supBtn);
+  actions.appendChild(supBadge);
   actions.appendChild(downBtn);
   actions.appendChild(commBtn);
 
@@ -70,89 +118,87 @@ function createCard(game){
   return card;
 }
 
-// helper to create action button
-function makeBtn(text, cls, isSuper=false){
-  const b = document.createElement('button');
-  b.className = 'action-btn' + (isSuper ? ' super' : '');
-  b.title = text;
-  b.innerText = text;
-  return b;
-}
-
-// escape
-function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
-// local counts helpers
-function localKey(prefix, id){ return `upfly_${prefix}_${id}`; }
-function getLocalCount(prefix, id){ return Number(localStorage.getItem(localKey(prefix,id)) || 0); }
-function incrementLocal(prefix, id){ const k=localKey(prefix,id); const v=Number(localStorage.getItem(k)||0)+1; localStorage.setItem(k,v); return v; }
-
 // append a batch of cards
 function appendBatch(){
   if(loading) return;
   loading = true;
-  const end = Math.min(nextIndex + BATCH_SIZE, gamesList.length);
-  for(let i=nextIndex;i<end;i++){
-    const card = createCard(gamesList[i]);
-    FEED.appendChild(card);
+  const end = Math.min(nextIndex + BATCH_SIZE, games.length);
+  for(let i = nextIndex; i < end; i++){
+    const card = createCard(games[i]);
+    feed.appendChild(card);
   }
   nextIndex = end;
   loading = false;
-  // ensure observer is observing newest last card
   refreshObserver();
-  // prune old nodes if too many
-  pruneOldCards();
+  pruneOld();
 }
 
-// prune old cards to limit memory
-function pruneOldCards(){
-  const cards = FEED.querySelectorAll('.card');
+// remove oldest cards beyond MAX_LOADED
+function pruneOld(){
+  const cards = feed.querySelectorAll('.card');
   if(cards.length <= MAX_LOADED) return;
   const removeCount = cards.length - MAX_LOADED;
   for(let i=0;i<removeCount;i++){
-    FEED.removeChild(cards[i]);
+    if(cards[i] && cards[i].parentNode) cards[i].parentNode.removeChild(cards[i]);
   }
 }
 
-// IntersectionObserver: when last card visible, append next batch
+// IntersectionObserver to load more when last is visible
 function setupObserver(){
   if(observer) observer.disconnect();
-  observer = new IntersectionObserver((entries) => {
-    entries.forEach(en=>{
+  observer = new IntersectionObserver(entries => {
+    entries.forEach(en => {
       if(en.isIntersecting && en.target.classList.contains('card')){
-        // if this is last card in feed and more games exist -> append
-        const cards = FEED.querySelectorAll('.card');
-        const last = cards[cards.length-1];
-        if(en.target === last && nextIndex < gamesList.length){
+        const cards = feed.querySelectorAll('.card');
+        const last = cards[cards.length - 1];
+        if(en.target === last && nextIndex < games.length){
           appendBatch();
         }
       }
     });
-  }, {root: FEED, threshold: 0.65});
+  }, { root: feed, threshold: 0.75 });
   refreshObserver();
 }
 
 function refreshObserver(){
   if(!observer) return;
   observer.disconnect();
-  const cards = FEED.querySelectorAll('.card');
-  if(cards.length>0){
-    const last = cards[cards.length-1];
-    observer.observe(last);
+  const cards = feed.querySelectorAll('.card');
+  if(cards.length > 0){
+    observer.observe(cards[cards.length - 1]);
   }
 }
 
-// simple comments UI (localStorage)
+// simple comments saved in localStorage
 function openComments(gameId){
-  const key = `upfly_comments_${gameId}`;
-  const comments = JSON.parse(localStorage.getItem(key) || '[]');
-  const txt = prompt('Comentarios para el juego (se guardan localmente):', '');
+  const keyC = `upfly_comments_${gameId}`;
+  const existing = JSON.parse(localStorage.getItem(keyC) || '[]');
+  const txt = prompt('Escribe tu comentario (se guarda localmente):', '');
   if(txt && txt.trim()){
-    comments.push({t:txt.trim(),d:new Date().toISOString()});
-    localStorage.setItem(key, JSON.stringify(comments));
+    existing.push({text: txt.trim(), date: new Date().toISOString()});
+    localStorage.setItem(keyC, JSON.stringify(existing));
     alert('Comentario guardado localmente');
   }
 }
 
-// initialize
-loadGamesList();
+// handle messages from games (postMessage)
+function onMessageFromGame(ev){
+  if(!ev.data || typeof ev.data !== 'object') return;
+  if(ev.data.type === 'score'){
+    // example: { type:'score', value: 123, gameId: 'space-runner' }
+    const v = Number(ev.data.value || 0);
+    const id = ev.data.gameId || (ev.source && ev.source.frameElement && ev.source.frameElement.parentElement && ev.source.frameElement.parentElement.dataset && ev.source.frameElement.parentElement.dataset.gameId);
+    if(id){
+      // store total score per user in localStorage aggregate
+      const aggKey = 'upfly_total_score';
+      const total = Number(localStorage.getItem(aggKey) || 0) + v;
+      localStorage.setItem(aggKey, total);
+      alert(`Score recibido: ${v}. Total acumulado (local): ${total}`);
+    } else {
+      alert(`Score recibido: ${v}`);
+    }
+  }
+}
+
+// init
+init();
