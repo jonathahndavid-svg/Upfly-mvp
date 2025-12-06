@@ -1,0 +1,10 @@
+[
+    {
+        "title": "Space Shooter",
+        "path": "games/game1/index.html"
+    },
+    {
+        "title": "Flappy Bird Clone",
+        "path": "games/game2/index.html"
+    }
+]
