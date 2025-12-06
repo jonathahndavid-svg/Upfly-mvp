@@ -1,10 +1,14 @@
 [
-    {
-        "title": "Space Shooter",
-        "path": "games/game1/index.html"
-    },
-    {
-        "title": "Flappy Bird Clone",
-        "path": "games/game2/index.html"
-    }
+  {
+    "id": "game1",
+    "title": "Flappy Bird JS",
+    "cover": "games/game1/cover.png",
+    "url": "games/game1/index.html"
+  },
+  {
+    "id": "game2",
+    "title": "Pong Classic",
+    "cover": "games/game2/cover.png",
+    "url": "games/game2/index.html"
+  }
 ]
