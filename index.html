@@ -5,51 +5,50 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Upfly — MVP</title>
 
-  <!-- Tailwind -->
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    /* feed ocupa toda la pantalla debajo del header */
-    #feed-container {
-      height: calc(100vh - 64px);
-      overflow-y: auto;
-      scroll-snap-type: y mandatory;
-    }
-    .game-card {
-      scroll-snap-align: start;
-    }
-    iframe {
-      border: none;
-    }
+    .feed-area { height: calc(100vh - 64px); }
+    .card { height: 100%; min-height: 100%; scroll-snap-align: start; position: relative; }
+    .game-frame { width: 100%; height: 100%; border: 0; display: block; }
+    .info-box { background: linear-gradient(180deg, rgba(0,0,0,0), rgba(2,6,23,0.6)); }
+    .no-outline:focus { outline: none; box-shadow: none; }
+    .feed-scroll::-webkit-scrollbar { width: 8px; }
+    .feed-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 8px; }
   </style>
 </head>
 
-<body class="bg-[#071029] text-white">
+<body class="bg-[#071029] text-[#e6eef8] antialiased">
 
-  <!-- HEADER -->
-  <header class="h-16 bg-gradient-to-r from-[#021021] to-[#071029] border-b border-white/10 flex items-center px-4">
+  <!-- Top banner -->
+  <header class="h-16 bg-gradient-to-r from-[#021021] to-[#071029] border-b border-white/5 flex items-center px-4">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M4 12h16" stroke="white" stroke-width="2" stroke-linecap="round"/>
-          <path d="M12 4v16" stroke="white" stroke-width="2" stroke-linecap="round"/>
-        </svg>
+      <div class="flex items-center gap-2">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#4f46e5] flex items-center justify-center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M4 12h16" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 4v16" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="text-xl font-semibold">Upfly</div>
       </div>
-      <span class="text-xl font-bold tracking-wide">Upfly</span>
     </div>
-
-    <div class="ml-auto opacity-60 text-sm">
-      MVP
-    </div>
+    <div class="ml-auto text-sm text-[#94a3b8]">MVP</div>
   </header>
 
   <!-- FEED -->
-  <main id="feed-container" class="w-full snap-y snap-mandatory overflow-y-auto">
-    <!-- Aquí JS inserta los juegos dinámicamente -->
+  <main id="feed-container" class="feed-area overflow-y-auto feed-scroll scroll-snap-type-y-mandatory snap-y">
+    <!-- JS insertará los juegos aquí -->
   </main>
 
-  <!-- JS APP -->
-  <script src="app.js"></script>
+  <!-- Overlay fullscreen (para futuras funciones) -->
+  <div id="overlay" class="fixed inset-0 hidden items-center justify-center bg-black/80 z-50 p-4">
+    <button id="overlayClose" class="absolute top-6 right-6 text-white bg-red-600 px-3 py-1 rounded">Cerrar</button>
+    <iframe id="overlayFrame" class="w-full max-h-[90vh] rounded" sandbox="allow-scripts allow-same-origin" frameborder="0"></iframe>
+  </div>
 
+  <!-- JAVASCRIPT -->
+  <script src="app.js"></script>
 </body>
 </html>
