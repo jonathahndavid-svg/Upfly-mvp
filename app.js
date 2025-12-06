@@ -1,25 +1,32 @@
-document.addEventListener("DOMContentLoaded", loadGames);
+const feed = document.getElementById("feed-container");
 
-async function loadGames() {
+async function cargarJuegos() {
     try {
-        const response = await fetch("games/games.json");
-        const games = await response.json();
+        const res = await fetch("games/games.json");
+        const juegos = await res.json();
 
-        const feed = document.getElementById("game-feed");
+        juegos.forEach(juego => {
+            const item = document.createElement("div");
+            item.classList.add("feed-item");
 
-        games.forEach(game => {
-            const div = document.createElement("div");
-            div.classList.add("game-item");
-
-            div.innerHTML = `
-                <iframe class="game-frame" src="${game.path}"></iframe>
-                <div class="game-title">${game.title}</div>
+            item.innerHTML = `
+                <img src="${juego.cover}" class="feed-image">
+                <div class="feed-overlay">
+                    <h2>${juego.title}</h2>
+                </div>
             `;
 
-            feed.appendChild(div);
+            // abrir el juego al hacer clic
+            item.addEventListener("click", () => {
+                window.location.href = juego.url;
+            });
+
+            feed.appendChild(item);
         });
 
-    } catch (error) {
-        console.error("Error cargando juegos:", error);
+    } catch (err) {
+        console.error("Error cargando juegos:", err);
     }
 }
+
+cargarJuegos();
