@@ -3,14 +3,14 @@
     "id": "space-runner",
     "title": "Space Runner (Demo)",
     "author": "DemoDev",
-    "cover": "games/space-runner/cover.png",
-    "url": "games/space-runner/index.html"
+    "cover": "game1/space-runner/cover.png",
+    "url": "game1/index.html"
   },
   {
     "id": "jump-hero",
     "title": "Jump Hero (Demo)",
     "author": "DemoDev",
-    "cover": "games/jump-hero/cover.png",
-    "url": "games/jump-hero/index.html"
+    "cover": "game2/jump-hero/cover.png",
+    "url": "game2/index.html"
   }
 ]
